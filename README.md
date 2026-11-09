@@ -2,13 +2,13 @@
 
 Find the request that slowed down a release. Open two HTTP Archive (HAR) files to compare network waterfalls, inspect the slowest change, and export the evidence to a pull request. The browser app runs offline. The CLI runs the same comparison in CI.
 
-[简体中文](README.zh-CN.md) · [Example captures](examples/) · [MIT license](LICENSE)
+[Open the live demo](https://kremefkaped.github.io/harfold/) · [简体中文](README.zh-CN.md) · [Example captures](examples/) · [MIT license](LICENSE)
 
 ![Harfold showing a storefront capture and its network waterfall](docs/waterfall.png)
 
 ## Try the storefront case
 
-Download the repository ZIP, extract it, and open **index.html** in a desktop browser. The two sample captures are already loaded.
+Open the live demo above. For offline use, download the repository ZIP, extract it, and open **index.html** in a desktop browser. The two sample captures are already loaded.
 
 1. Select **Compare**. The storefront’s capture span grew by **794 ms**.
 2. Open **/images/hero.webp**. Its request took **410 ms → 1.43 s**. The server wait stayed at 37 ms while receiving the image took an extra **1.02 s**.

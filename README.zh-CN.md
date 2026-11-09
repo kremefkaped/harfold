@@ -2,13 +2,13 @@
 
 网页发布后变慢了，具体慢在哪个请求？把两次操作的 HAR 网络记录放进 Harfold，可以逐条比较耗时、下载大小和状态码，再把结果导出为适合贴到 Pull Request 的 Markdown。浏览器版支持离线使用，命令行版可以接入 CI。
 
-[English](README.md) · [示例文件](examples/) · [MIT 许可证](LICENSE)
+[在线演示](https://kremefkaped.github.io/harfold/) · [English](README.md) · [示例文件](examples/) · [MIT 许可证](LICENSE)
 
 ![Harfold 中的商店页面请求瀑布图](docs/waterfall.png)
 
 ## 一分钟复现一次性能回归
 
-从 GitHub 下载项目 ZIP，解压后双击 **index.html**。页面会自动载入一间虚构商店改版前后的两份记录。
+打开上方的在线演示，页面会自动载入一间虚构商店改版前后的两份记录。离线使用时，从 GitHub 下载项目 ZIP，解压后双击 **index.html** 即可。
 
 1. 点击 **Compare**。从首个请求发出到最后一个请求完成，整段记录多用了 **794 毫秒**。
 2. 点击 **/images/hero.webp**。它的体积从 **142,000 字节增加到 1,284,000 字节**，耗时从 **410 毫秒增加到 1.43 秒**。等待响应仍是 37 毫秒，多出的 1.02 秒都花在接收数据上。
