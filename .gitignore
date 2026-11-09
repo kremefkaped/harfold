@@ -1,0 +1,8 @@
+# Keep personal recordings and generated downloads out of commits.
+*.har
+!examples/storefront-before.har
+!examples/storefront-after.har
+dist/
+node_modules/
+.DS_Store
+Thumbs.db

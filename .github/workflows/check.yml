@@ -1,0 +1,16 @@
+name: Check
+on: [push, pull_request]
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - run: node --test
+      - run: node demo.js --check
+      - run: node scripts/standalone.js

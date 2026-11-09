@@ -1,0 +1,81 @@
+# Harfold
+
+Find the request that slowed down a release. Open two HTTP Archive (HAR) files to compare network waterfalls, inspect the slowest change, and export the evidence to a pull request. The browser app runs offline. The CLI runs the same comparison in CI.
+
+[简体中文](README.zh-CN.md) · [Example captures](examples/) · [MIT license](LICENSE)
+
+![Harfold showing a storefront capture and its network waterfall](docs/waterfall.png)
+
+## Try the storefront case
+
+Download the repository ZIP, extract it, and open **index.html** in a desktop browser. The two sample captures are already loaded.
+
+1. Select **Compare**. The storefront’s capture span grew by **794 ms**.
+2. Open **/images/hero.webp**. Its request took **410 ms → 1.43 s**. The server wait stayed at 37 ms while receiving the image took an extra **1.02 s**.
+3. Search for **503**. The new recommendations endpoint also failed in capture B.
+4. Select **Export report** to save the Markdown comparison. It includes the full-capture metrics and up to 25 request pairs, independent of the screen filters.
+
+## Inspect your own release
+
+Record the same interaction before and after a change. In Chrome DevTools, open **Network**, record the interaction, then choose **Export HAR (sanitized)**. Keep viewport, cache state and network settings consistent across runs. [Chrome’s HAR export guide](https://developer.chrome.com/docs/devtools/network/reference/#save-as-har)
+
+Drop the earlier file onto **Baseline capture** and the later one onto **Comparison capture**. The first successful import clears both demo slots. A single file is enough for the waterfall. Select a request to inspect the origin, HTTP status, size and individual timing phases.
+
+## Run in CI
+
+Use Node.js 22 or newer. There are no packages to install.
+
+```sh
+node cli.js examples/storefront-before.har examples/storefront-after.har
+node cli.js examples/storefront-before.har examples/storefront-after.har --json
+```
+
+Set the largest acceptable increase in capture span, in milliseconds. This example exits with code **1** because the recording grew by 794 ms.
+
+```sh
+node cli.js examples/storefront-before.har examples/storefront-after.har --max-span-increase 750
+```
+
+| Exit code | Meaning |
+| --- | --- |
+| 0 | Comparison succeeded and any supplied budget passed |
+| 1 | Capture span increased by more than the budget |
+| 2 | Invalid arguments, unreadable file or invalid capture |
+
+To add the report to a GitHub Actions job summary, run the following step after checking out Harfold, setting up Node, and recording the two files in the working directory.
+
+```yaml
+- name: Check network regression
+  shell: bash
+  run: node cli.js before.har after.har --max-span-increase 250 >> "$GITHUB_STEP_SUMMARY"
+```
+
+## Read the measurements
+
+| Measure | Definition |
+| --- | --- |
+| Capture span | Elapsed time from the first included request start to the last included finish. An interaction or a late poll can extend it beyond the page-load event. |
+| Request match | HTTP method, URL origin and pathname. Repeated endpoints are paired by chronological occurrence. Query strings and fragments are ignored, so two requests invoked with different arguments can match. |
+| Response bytes | The exporter’s transfer size when available, then response headers plus body size, then body size alone. An unknown request size makes the capture total unknown. |
+| HTTP errors | Responses with HTTP status 400–599. Status 0 is displayed separately on the request and contributes zero to this count. |
+| Timing phases | TLS is separated from connection setup. A request can have a reported total even when its phase breakdown is missing. |
+
+The parser accepts HAR objects with a `log.entries` array. Each file can contain up to 50,000 entries and be up to 32 MiB. Unsupported protocols and incomplete entries are skipped and counted. Results display in batches of 100. The JSON CLI output contains all request pairs.
+
+## Data handling
+
+Captures stay in memory on your device. Harfold uses local assets, has no analytics, and makes no external requests. The exported reports retain hostnames and paths, which can contain customer IDs or internal service names. Headers, cookies, request and response bodies, URL credentials, query strings and fragments are excluded from the normalized records.
+
+## Develop and distribute
+
+```sh
+node --test
+node demo.js --check
+node scripts/standalone.js
+```
+
+The last command builds **dist/harfold.html**, a portable single file you can attach to a release or send to a teammate. Open **index.html** directly while editing the source.
+
+To host the app on GitHub Pages, publish the repository, then choose **Settings → Pages → Deploy from a branch → main → /(root)**. The repository root contains the complete static site. [GitHub Pages publishing guide](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
+
+For bug reports, include the browser or Node version, the expected result, and a minimal synthetic HAR that reproduces the issue. The two files in `examples/` are safe starting points.

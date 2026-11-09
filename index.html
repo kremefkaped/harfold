@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="description" content="Inspect HAR network waterfalls and compare captures locally in your browser.">
+  <title>Harfold — Network inspector</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <script src="engine.js" defer></script>
+  <script src="demo.js" defer></script>
+  <script src="report.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-device" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M4 9a8 8 0 1 1 .5 7M4 4v5h5"/></symbol>
+    <symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 16v4h16v-4"/></symbol>
+    <symbol id="icon-requests" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="icon-bytes" viewBox="0 0 24 24"><path d="M7 4v14m-4-4 4 4 4-4M17 20V6m-4 4 4-4 4 4"/></symbol>
+    <symbol id="icon-errors" viewBox="0 0 24 24"><path d="m11 4-8 14a1 1 0 0 0 1 2h16a1 1 0 0 0 1-2L13 4a1.1 1.1 0 0 0-2 0Z"/><path d="M12 9v4m0 3h.01"/></symbol>
+    <symbol id="icon-waterfall" viewBox="0 0 24 24"><path d="M3 6h8m-5 6h10m-3 6h8" stroke-width="3"/></symbol>
+    <symbol id="icon-compare" viewBox="0 0 24 24"><path d="M3 8h16m-4-4 4 4-4 4m6 4H5m4-4-4 4 4 4"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+  </svg>
+
+  <header class="masthead">
+    <div class="shell masthead-inner">
+      <div class="brand" aria-label="Harfold">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="8" fill="#ed824d"/><path d="M6 10h16v5H6zm7 8h15v5H13zm8 8h13v5H21z" fill="#292923"/></svg>
+        <span>Harfold</span>
+      </div>
+      <span class="masthead-rule"></span>
+      <span class="masthead-descriptor">Network inspector</span>
+      <span class="local-indicator"><span class="online-dot"></span>Runs locally</span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <header class="workspace-head">
+      <div>
+        <h1>Capture workspace</h1>
+        <p id="workspace-note">Inspect a request waterfall or compare two HAR captures.</p>
+      </div>
+      <div class="actions">
+        <button type="button" class="button button-quiet" id="reset-demo"><svg class="icon" aria-hidden="true"><use href="#icon-refresh"/></svg>Load demo</button>
+        <button type="button" class="button button-primary" id="export-report"><svg class="icon" aria-hidden="true"><use href="#icon-export"/></svg>Export report</button>
+      </div>
+    </header>
+
+    <section class="capture-pair" aria-label="Capture files">
+      <label for="file-a" id="drop-a" class="capture-card">
+        <input type="file" id="file-a" class="file-native" accept=".har,.json,application/json" aria-label="Choose baseline HAR capture A">
+        <span class="capture-letter letter-a" aria-hidden="true">A</span>
+        <span class="capture-info"><span class="field-caption">Baseline capture<span class="sample-label"> · Demo</span></span><span id="name-a" class="file-name">Baseline</span></span>
+        <span class="file-action"><svg class="icon" aria-hidden="true"><use href="#icon-upload"/></svg><span>Open HAR</span></span>
+      </label>
+      <label for="file-b" id="drop-b" class="capture-card">
+        <input type="file" id="file-b" class="file-native" accept=".har,.json,application/json" aria-label="Choose comparison HAR capture B">
+        <span class="capture-letter letter-b" aria-hidden="true">B</span>
+        <span class="capture-info"><span class="field-caption">Comparison capture<span class="sample-label"> · Demo</span></span><span id="name-b" class="file-name">Comparison</span></span>
+        <span class="file-action"><svg class="icon" aria-hidden="true"><use href="#icon-upload"/></svg><span>Open HAR</span></span>
+      </label>
+    </section>
+    <div id="notice" class="notice" role="status" aria-live="polite"></div>
+    <noscript><p>Enable JavaScript in your browser to read HAR captures.</p></noscript>
+
+    <section class="metrics" aria-label="Capture metrics">
+      <div class="metric"><div class="metric-label"><svg class="icon" aria-hidden="true"><use href="#icon-clock"/></svg><span id="label-duration">Capture duration</span></div><div id="metric-duration" class="metric-value">—</div></div>
+      <div class="metric"><div class="metric-label"><svg class="icon" aria-hidden="true"><use href="#icon-requests"/></svg><span id="label-requests">Requests</span></div><div id="metric-requests" class="metric-value">—</div></div>
+      <div class="metric"><div class="metric-label"><svg class="icon" aria-hidden="true"><use href="#icon-bytes"/></svg><span id="label-bytes">Transferred</span></div><div id="metric-bytes" class="metric-value">—</div></div>
+      <div class="metric"><div class="metric-label"><svg class="icon" aria-hidden="true"><use href="#icon-errors"/></svg><span id="label-errors">HTTP errors</span></div><div id="metric-errors" class="metric-value">—</div></div>
+    </section>
+
+    <section aria-label="Request explorer" class="explorer">
+      <div class="view-bar">
+        <div class="view-switch" role="group" aria-label="Analysis view">
+          <button type="button" id="view-waterfall" class="view-button" aria-pressed="true" aria-controls="waterfall-panel"><svg class="icon" aria-hidden="true"><use href="#icon-waterfall"/></svg>Waterfall</button>
+          <button type="button" id="view-compare" class="view-button" aria-pressed="false" aria-controls="compare-panel"><svg class="icon" aria-hidden="true"><use href="#icon-compare"/></svg>Compare</button>
+        </div>
+        <label id="capture-picker" class="capture-picker"><span>Showing</span><span class="select-wrap"><select id="capture-select" aria-label="Waterfall capture"><option value="a">A · Baseline</option><option value="b">B · Comparison</option></select><svg class="icon select-icon" aria-hidden="true"><use href="#icon-menu"/></svg></span></label>
+      </div>
+      <div class="filter-bar">
+        <label class="search-wrap"><svg class="icon" aria-hidden="true"><use href="#icon-search"/></svg><input type="search" id="search" aria-label="Filter requests" placeholder="Filter requests…"></label>
+        <span class="select-wrap type-wrap"><select id="type-filter" aria-label="Filter by resource type"><option value="all">All types</option></select><svg class="icon select-icon" aria-hidden="true"><use href="#icon-menu"/></svg></span>
+      </div>
+
+      <div id="waterfall-panel">
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Request waterfall, scroll horizontally if needed">
+          <table class="waterfall-table">
+            <caption class="visually-hidden">Requests in capture order, with timings relative to capture start</caption>
+            <colgroup><col class="col-request"><col class="col-type"><col class="col-status"><col class="col-timeline"><col class="col-time"></colgroup>
+            <thead><tr>
+              <th scope="col">Request</th><th scope="col">Type</th><th scope="col">Status</th>
+              <th scope="col" class="axis-heading"><span class="visually-hidden">Request timeline</span><span class="axis" aria-hidden="true"><span id="axis-start">0</span><span id="axis-mid">—</span><span id="axis-end">—</span></span></th>
+              <th scope="col" class="number-cell">Time</th>
+            </tr></thead>
+            <tbody id="waterfall-body"></tbody>
+          </table>
+        </div>
+        <div class="table-foot"><span id="result-count"></span><button type="button" id="more-waterfall" class="more-button" hidden>Show more requests</button></div>
+      </div>
+
+      <div id="compare-panel" hidden>
+        <p id="comparison-summary" class="comparison-summary"></p>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Capture comparison, scroll horizontally if needed">
+          <table class="comparison-table">
+            <caption class="visually-hidden">Request duration changes between the baseline and comparison captures</caption>
+            <colgroup><col class="cmp-request"><col class="cmp-state"><col class="cmp-number"><col class="cmp-number"><col class="cmp-number"></colgroup>
+            <thead><tr><th scope="col">Request</th><th scope="col">State</th><th scope="col">Baseline</th><th scope="col">Comparison</th><th scope="col">Change</th></tr></thead>
+            <tbody id="compare-body"></tbody>
+          </table>
+        </div>
+        <div class="table-foot"><span id="compare-count"></span><button type="button" id="more-compare" class="more-button" hidden>Show more requests</button></div>
+      </div>
+    </section>
+    <footer class="workspace-foot"><svg class="icon" aria-hidden="true"><use href="#icon-device"/></svg>Files are processed in this browser.</footer>
+  </main>
+
+  <dialog id="detail" aria-labelledby="detail-title">
+    <header class="dialog-head"><span class="field-caption">Request details</span><form method="dialog"><button class="icon-button" aria-label="Close request details"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></form></header>
+    <h2 id="detail-title"></h2>
+    <div id="detail-content"></div>
+  </dialog>
+</body>
+</html>
