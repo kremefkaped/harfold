@@ -1,0 +1,23 @@
+name: Report a field test
+description: Describe how a network acceptance check performed on a real incident.
+title: "Field test – "
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Which user action and visible result mattered?
+      description: General descriptions are sufficient. Keep recordings, internal URLs and customer data local.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What did the network check and your independent functional test each show?
+      description: Include cases that could not produce a rule or where the results disagreed.
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: Minutes spent creating a check manually and with Harfold, if you timed both
+      placeholder: "Manual 8 min, Harfold 5 min, manual first"

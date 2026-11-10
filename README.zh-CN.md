@@ -2,7 +2,7 @@
 
 网页发布后变慢了，具体慢在哪个请求？把两次操作的 HAR 网络记录放进 Harfold，可以逐条比较耗时、下载大小和状态码，再把结果导出为适合贴到 Pull Request 的 Markdown。浏览器版支持离线使用，命令行版可以接入 CI。
 
-[在线演示](https://kremefkaped.github.io/harfold/) · [English](README.md) · [示例文件](examples/) · [MIT 许可证](LICENSE)
+[在线演示](https://kremefkaped.github.io/harfold/) · [直接试一次修复验收](https://kremefkaped.github.io/harfold/#acceptance-demo) · [English](README.md) · [示例文件](examples/) · [MIT 许可证](LICENSE)
 
 ![Harfold 中的商店页面请求瀑布图](docs/waterfall.png)
 
@@ -14,6 +14,20 @@
 2. 点击 **/images/hero.webp**。它的体积从 **142,000 字节增加到 1,284,000 字节**，耗时从 **410 毫秒增加到 1.43 秒**。等待响应仍是 37 毫秒，多出的 1.02 秒都花在接收数据上。
 3. 在筛选框输入 **503**，可以看到新版新增的推荐接口报错。
 4. 点击 **Export report** 下载 Markdown，里面包含整份记录的指标和最多 25 组请求。搜索和筛选只影响屏幕上展示的行。
+
+## 怎么知道修好了
+
+在 **Compare** 中打开 **/images/hero.webp**，点击 **Create acceptance check**。页面会用改版前的 142,000 字节作为上限，先确认旧版通过、新版的 1,284,000 字节超限。保存 JSON 后，在 **Acceptance check** 中导入修复后的第三份抓包，即可复查同一条规则。点击 **View task prompt** 可以看到给开发者或 AI 的任务说明，它会随本次检查结果更新。
+
+```sh
+node cli.js examples/storefront-before.har examples/storefront-after.har --derive bytes --endpoint https://storefront.example/images/hero.webp > contract.json
+node cli.js --check-contract contract.json examples/storefront-after.har
+node cli.js --prompt contract.json examples/storefront-after.har
+```
+
+把后两条命令里的 HAR 换成修复后的记录即可。也可以用 `--derive status` 检查同一接口是否从 4xx 或 5xx 恢复为 2xx。每份记录中必须恰有一个方法、来源和路径相同的请求；查询参数不参与配对。请求缺失、重复、记录有跳过条目或计量口径变化，结果均为「证据不足」，退出码为 **3**。字节检查限于 HTTP 200、正字节记录，默认上限取自单次基线。
+
+图片损坏后也可能变小、返回 HTTP 200。还要单独验证它能解码并显示预期内容。我们用七次由浏览器实际发起的本地访问复现了这个反例。[实验和复现步骤](experiments/acceptance/) · [中文研发记录](experiments/acceptance/research.zh-CN.md)
 
 ## 分析自己的网页
 

@@ -12,6 +12,8 @@
   <script src="engine.js" defer></script>
   <script src="demo.js" defer></script>
   <script src="report.js" defer></script>
+  <script src="contract.js" defer></script>
+  <script src="contract-prompt.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -39,6 +41,7 @@
       </div>
       <span class="masthead-rule"></span>
       <span class="masthead-descriptor">Network inspector</span>
+      <button type="button" class="button check-opener" id="open-check"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 12l3 3 5-6"/></svg>Acceptance check</button>
       <span class="local-indicator"><span class="online-dot"></span>Runs locally</span>
     </div>
   </header>
@@ -128,6 +131,35 @@
     <header class="dialog-head"><span class="field-caption">Request details</span><form method="dialog"><button class="icon-button" aria-label="Close request details"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></form></header>
     <h2 id="detail-title"></h2>
     <div id="detail-content"></div>
+  </dialog>
+  <dialog id="check-dialog" aria-labelledby="check-heading">
+    <header class="dialog-head"><h2 id="check-heading">Acceptance check</h2><form method="dialog"><button class="icon-button" aria-label="Close acceptance check"><svg class="icon" aria-hidden="true"><use href="#icon-close"/></svg></button></form></header>
+    <p id="check-intro">Open a saved check, or select a matched request in Compare to create one.</p>
+    <div class="check-actions">
+      <label class="button button-quiet file-button"><input class="file-native" type="file" id="check-file" accept=".json,application/json">Open saved JSON</label>
+      <button type="button" class="button button-primary" id="try-check-demo">Try the demo</button>
+    </div>
+    <div id="check-notice" class="notice" role="status" aria-live="polite"></div>
+    <section id="check-active" aria-label="Current acceptance check" hidden>
+      <div class="rule-card">
+        <div class="field-caption" id="check-source"></div>
+        <h3 id="check-target"></h3>
+        <p id="check-rule"></p>
+        <dl class="check-evidence"><div><dt>Good · A</dt><dd id="check-before"></dd></div><div><dt>Regressed · B</dt><dd id="check-after"></dd></div></dl>
+      </div>
+      <div class="check-actions"><button type="button" class="button button-quiet" id="save-check">Save check JSON</button><button type="button" class="button button-quiet" id="copy-prompt">Copy task prompt</button></div>
+      <details class="prompt-disclosure" id="prompt-disclosure"><summary>View task prompt</summary><textarea id="check-prompt" aria-label="Task prompt" rows="6" readonly></textarea></details>
+      <section class="candidate-section" aria-labelledby="candidate-heading">
+        <h3 id="candidate-heading">Verify a candidate</h3>
+        <p>Record the same interaction after the fix, then open that HAR to test this rule.</p>
+        <label class="button button-primary file-button"><input class="file-native" type="file" id="candidate-file" accept=".har,.json,application/json">Choose candidate HAR</label>
+        <div id="demo-replay" hidden>
+          <span class="field-caption">Replay known samples</span>
+          <div class="check-actions"><button type="button" class="button button-quiet" id="replay-a">Try baseline</button><button type="button" class="button button-quiet" id="replay-b">Try regression</button></div>
+        </div>
+        <div id="check-result" class="check-result" role="status" aria-live="polite"></div>
+      </section>
+    </section>
   </dialog>
 </body>
 </html>

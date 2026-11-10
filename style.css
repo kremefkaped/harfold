@@ -279,6 +279,43 @@ dialog p { margin-block: 8px; color: var(--muted); font-size: 13px; line-height:
 .phase-track { display: block; position: relative; height: 8px; background: #f1f0e9; border-radius: 2px; }
 .phase-bar { display: block; position: absolute; left: 0; top: 0; height: 100%; min-width: 1px; background: #c67750; border-radius: 2px; }
 .phase-time { text-align: right; }
+.check-opener { margin-left: auto; min-height: 31px; padding-inline: 10px; font-size: 12px; }
+.check-opener + .local-indicator { margin-left: 0; }
+.check-opener:hover, .file-button.button-quiet:hover { background: #eeefe6; }
+.file-button { position: relative; cursor: pointer; }
+.file-button:focus-within { outline: 3px solid #a9421a; outline-offset: 2px; }
+.check-creator { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0; }
+.check-creator select { background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 7px 4px; min-height: 36px; max-width: 100%; font-size: 12px; }
+.check-unavailable summary, .prompt-disclosure summary { cursor: pointer; color: var(--muted); font-size: 13px; padding-block: 5px; }
+summary:focus-visible, textarea:focus-visible { outline: 3px solid #a9421a; outline-offset: 2px; }
+#check-dialog { width: min(560px, calc(100% - 28px)); }
+#check-heading { margin: 0; }
+#check-dialog .dialog-head { margin-bottom: 12px; }
+#check-intro { margin: 0 0 14px; }
+.rule-card { margin: 16px 0 12px; padding: 15px; background: #f4f4ec; border: 1px solid var(--line); border-radius: 7px; overflow-wrap: anywhere; }
+.rule-card h3 { margin: 5px 0 0; font: 600 15px/1.4 var(--mono); }
+.rule-card p { color: var(--ink); }
+.check-evidence { display: flex; flex-wrap: wrap; gap: 28px; margin: 13px 0 0; border-top: 1px solid var(--line); padding-top: 10px; }
+.check-evidence dt { font: 10px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.check-evidence dd { margin: 4px 0 0; font: 600 13px var(--mono); }
+.check-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.prompt-disclosure { margin-top: 7px; }
+.prompt-disclosure textarea { width: 100%; max-width: 100%; resize: vertical; padding: 10px; font: 12px/1.5 var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 5px; }
+.candidate-section { margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line); }
+.candidate-section h3 { margin: 0; }
+#demo-replay { margin-top: 12px; }
+#demo-replay .check-actions { margin-top: 5px; }
+#demo-replay .button { min-height: 31px; padding-inline: 10px; }
+.check-result { margin-top: 12px; padding: 12px; border-left: 3px solid #9c8a61; background: #f3efe2; font-size: 13px; overflow-wrap: anywhere; }
+.check-result:empty { display: none; }
+.check-result[data-state="pass"] { background: #ecf3e8; border-color: #53805b; }
+.check-result[data-state="fail"] { background: #fae9e0; border-color: #bf5936; }
+.check-result p { margin: 5px 0 0; color: var(--ink); }
+.verdict-file { margin-left: 7px; color: var(--muted); font: 11px var(--mono); }
+.verdict-measure { margin-top: 6px; font: 12px var(--mono); }
+@media (max-width: 510px) {
+  .check-opener + .local-indicator { display: none; }
+}
 @media (min-width: 1600px) {
   .workspace-head { padding: 40px 0 28px; }
   td { height: 44px; }

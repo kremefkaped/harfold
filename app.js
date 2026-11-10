@@ -6,12 +6,19 @@
   const batch = 100;
   const fileLimit = 32 * 1024 ** 2;
   const versions = { a: 0, b: 0 };
+  const demoCaptures = {
+    a: { name: 'storefront-before.har', data: parseHar(window.HarfoldDemo.before) },
+    b: { name: 'storefront-after.har', data: parseHar(window.HarfoldDemo.after) },
+  };
   let captures = {};
   let active = 'b';
   let view = 'waterfall';
   let demo = true;
   let comparison = null;
   let limit = batch;
+  let currentCheck = null;
+  let checkVersion = 0;
+  let candidateVersion = 0;
 
   function node(tag, className, text) {
     const el = document.createElement(tag);
@@ -24,13 +31,31 @@
     $('notice').textContent = message;
   }
 
+  async function readJson(file, description) {
+    if (file.size > fileLimit) throw new Error('Choose a file smaller than or equal to 32 MiB.');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let encoding = 'utf-8';
+    if (bytes[0] === 0xff && bytes[1] === 0xfe) encoding = 'utf-16le';
+    if (bytes[0] === 0xfe && bytes[1] === 0xff) encoding = 'utf-16be';
+    try { return JSON.parse(new TextDecoder(encoding, { fatal: true }).decode(bytes)); }
+    catch { throw new Error(description); }
+  }
+
+  function download(filename, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const link = node('a');
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   function setDemo() {
     versions.a++;
     versions.b++;
-    captures = {
-      a: { name: 'storefront-before.har', data: parseHar(window.HarfoldDemo.before) },
-      b: { name: 'storefront-after.har', data: parseHar(window.HarfoldDemo.after) },
-    };
+    captures = demoCaptures;
     active = 'b';
     demo = true;
     view = 'waterfall';
@@ -45,6 +70,7 @@
   }
 
   function refreshCaptures() {
+    if ($('detail').open) $('detail').close();
     comparison = captures.a && captures.b ? compareHars(captures.a.data, captures.b.data) : null;
     if (comparison) comparison.rows = sortChanges(comparison.rows);
     const types = new Set();
@@ -72,11 +98,7 @@
     if (!file) return;
     const version = ++versions[key];
     try {
-      if (file.size > fileLimit) throw new Error('Choose a HAR file smaller than or equal to 32 MiB.');
-      const source = (await file.text()).replace(/^\uFEFF/, '');
-      let raw;
-      try { raw = JSON.parse(source); }
-      catch { throw new Error('This file is not valid JSON. Export a HAR from the browser’s Network panel.'); }
+      const raw = await readJson(file, 'This file is not valid JSON. Export a HAR from the browser’s Network panel.');
       const data = parseHar(raw);
       if (version !== versions[key]) return;
       // On the first successful import, clear both examples to avoid mixing captures.
@@ -248,6 +270,128 @@
     return section;
   }
 
+  function checkCreator(change) {
+    const group = node('section', 'check-creator');
+    const options = new Map();
+    const unavailable = [];
+    for (const kind of ['bytes', 'status']) {
+      try {
+        options.set(kind, window.HarfoldContract.derive(captures.a.data, captures.b.data, change, kind));
+      } catch (error) {
+        unavailable.push(error.message);
+      }
+    }
+    if (!options.size) {
+      const explanation = node('details', 'check-unavailable');
+      explanation.append(node('summary', '', 'Why is an acceptance check unavailable?'));
+      for (const reason of new Set(unavailable)) explanation.append(node('p', '', reason));
+      group.append(explanation);
+      return group;
+    }
+    const select = node('select');
+    select.setAttribute('aria-label', 'Acceptance rule');
+    for (const kind of options.keys()) {
+      select.add(new Option(kind === 'bytes' ? 'Response byte budget' : 'Successful HTTP status', kind));
+    }
+    const button = node('button', 'button button-primary', 'Create acceptance check');
+    button.type = 'button';
+    button.addEventListener('click', () => {
+      setCheck(options.get(select.value), 'Verified against captures A and B', demo);
+      $('detail').close();
+      $('check-dialog').showModal();
+    });
+    group.append(select, button);
+    return group;
+  }
+
+  function measuredValue(kind, value) {
+    return kind === 'bytes' ? value.toLocaleString('en-US') + ' B' : 'HTTP ' + value;
+  }
+
+  function showCheckDemo() {
+    const { a, b } = demoCaptures;
+    const rows = demo ? comparison.rows : compareHars(a.data, b.data).rows;
+    const hero = rows.find(row => row.before?.origin === 'https://storefront.example' && row.before.path === '/images/hero.webp');
+    setCheck(window.HarfoldContract.derive(a.data, b.data, hero, 'bytes'), 'Storefront demo · Verified against A and B', true);
+    if (!$('check-dialog').open) $('check-dialog').showModal();
+  }
+
+  function setCheck(contract, source, sample = false) {
+    checkVersion++;
+    candidateVersion++;
+    currentCheck = contract;
+    $('check-active').hidden = !contract;
+    $('check-intro').hidden = Boolean(contract);
+    $('try-check-demo').hidden = Boolean(contract);
+    $('demo-replay').hidden = !sample;
+    $('check-notice').textContent = '';
+    $('check-result').replaceChildren();
+    $('check-result').removeAttribute('data-state');
+    $('prompt-disclosure').open = false;
+    $('check-prompt').value = '';
+    if (!contract) return;
+    $('check-source').textContent = source;
+    $('check-target').textContent = contract.method + ' ' + contract.origin + contract.path;
+    $('check-rule').textContent = contract.kind === 'bytes'
+      ? 'Require HTTP 200 and a positive byte count at or below ' + measuredValue('bytes', contract.maxBytes) + ' using the ' + contract.byteSource + ' measurement.'
+      : 'Require an HTTP status from 200 to 299.';
+    $('check-before').textContent = measuredValue(contract.kind, contract.evidence.before);
+    $('check-after').textContent = measuredValue(contract.kind, contract.evidence.after);
+    $('check-prompt').value = window.HarfoldContractPrompt.prompt(contract);
+  }
+
+  async function openSavedCheck(file) {
+    if (!file) return;
+    setCheck(null);
+    const version = checkVersion;
+    $('check-notice').textContent = 'Reading ' + file.name + '…';
+    try {
+      const raw = await readJson(file, 'This file must contain a JSON acceptance check.');
+      if (version !== checkVersion) return;
+      window.HarfoldContract.validate(raw);
+      setCheck(raw, 'Saved evidence · ' + file.name);
+    } catch (error) {
+      if (version === checkVersion) $('check-notice').textContent = 'Could not open ' + file.name + '. ' + error.message;
+    }
+  }
+
+  async function verifyCandidate(file) {
+    if (!file || !currentCheck) return;
+    const version = ++candidateVersion;
+    const result = $('check-result');
+    $('check-prompt').value = window.HarfoldContractPrompt.prompt(currentCheck);
+    $('check-notice').textContent = '';
+    result.removeAttribute('data-state');
+    result.textContent = 'Reading ' + file.name + '…';
+    try {
+      const raw = await readJson(file, 'This file must contain a HAR recording in JSON format.');
+      if (version !== candidateVersion) return;
+      showVerdict(parseHar(raw), file.name);
+    } catch (error) {
+      if (version === candidateVersion) {
+        result.dataset.state = 'invalid';
+        result.replaceChildren(node('strong', 'verdict-label', 'Invalid capture'), node('span', 'verdict-file', file.name),
+          node('p', '', error.message));
+      }
+    }
+  }
+
+  function showVerdict(capture, name, replay = '') {
+    const verdict = window.HarfoldContract.check(currentCheck, capture);
+    const sampleNote = replay ? '> Demo replay of the known ' + replay + ' capture. Verify a repair with a fresh, independent recording.\n\n' : '';
+    $('check-prompt').value = sampleNote + window.HarfoldContractPrompt.prompt(currentCheck, verdict);
+    $('check-notice').textContent = '';
+    const result = $('check-result');
+    result.dataset.state = verdict.state;
+    const label = { pass: 'Pass', fail: 'Fail', inconclusive: 'Inconclusive' }[verdict.state];
+    result.replaceChildren(node('strong', 'verdict-label', label),
+      node('span', 'verdict-file', replay ? 'Known ' + replay + ' · ' + name : name), node('p', '', verdict.reason));
+    if (verdict.actual !== null) {
+      result.append(node('div', 'verdict-measure', 'Observed · ' + measuredValue(currentCheck.kind, verdict.actual)));
+    }
+    if (verdict.state === 'pass') result.append(node('p', '', 'Network check passed. Test the user-visible behavior separately.'));
+  }
+
   function detail(req, change) {
     $('detail-title').textContent = req.method + ' ' + req.path;
     const content = $('detail-content');
@@ -259,6 +403,7 @@
         ['Status A → B', (change.before?.status ?? '—') + ' → ' + (change.after?.status ?? '—')],
         ['Time change', signed(change.delta, duration)],
       ]));
+      if (change.state === 'matched') content.append(checkCreator(change));
       if (change.before) content.append(phaseList(change.before, 'A · Timing breakdown'));
       if (change.after) content.append(phaseList(change.after, 'B · Timing breakdown'));
     } else {
@@ -303,18 +448,48 @@
   $('search').addEventListener('input', () => { limit = batch; render(); });
   $('type-filter').addEventListener('change', () => { limit = batch; render(); });
   $('reset-demo').addEventListener('click', () => { setDemo(); announce('Restored the two sample captures.'); });
+  $('open-check').addEventListener('click', () => $('check-dialog').showModal());
+  $('try-check-demo').addEventListener('click', showCheckDemo);
+  for (const [key, name] of [['a', 'baseline'], ['b', 'regression']]) {
+    $('replay-' + key).addEventListener('click', () => {
+      if (!currentCheck || $('demo-replay').hidden) return;
+      candidateVersion++;
+      showVerdict(demoCaptures[key].data, demoCaptures[key].name, name);
+    });
+  }
+  for (const [id, handler] of [['check-file', openSavedCheck], ['candidate-file', verifyCandidate]]) {
+    $(id).addEventListener('change', event => {
+      const file = event.target.files[0];
+      event.target.value = '';
+      handler(file);
+    });
+  }
+  $('save-check').addEventListener('click', () => {
+    if (!currentCheck) return;
+    download('contract.json', JSON.stringify(currentCheck, null, 2) + '\n', 'application/json;charset=utf-8');
+    $('check-notice').textContent = 'Saved contract.json.';
+  });
+  $('copy-prompt').addEventListener('click', async () => {
+    if (!currentCheck) return;
+    const version = checkVersion;
+    const text = $('check-prompt').value;
+    try {
+      await navigator.clipboard.writeText(text);
+      if (version === checkVersion && text === $('check-prompt').value) $('check-notice').textContent = 'Task prompt copied.';
+    } catch {
+      if (version !== checkVersion || text !== $('check-prompt').value) return;
+      $('prompt-disclosure').open = true;
+      $('check-prompt').focus();
+      $('check-prompt').select();
+      $('check-notice').textContent = 'Prompt selected. Use your device’s Copy command.';
+    }
+  });
   $('export-report').addEventListener('click', () => {
     const diff = view === 'compare';
     const report = diff ? markdown(captures.a.data, captures.b.data, comparison) : markdown(captures[active].data);
-    const url = URL.createObjectURL(new Blob([report], { type: 'text/markdown;charset=utf-8' }));
-    const link = node('a');
-    link.href = url;
-    link.download = diff ? 'harfold-comparison.md' : 'harfold-capture.md';
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    download(diff ? 'harfold-comparison.md' : 'harfold-capture.md', report, 'text/markdown;charset=utf-8');
     announce('Exported Markdown with hostnames and paths. Review before sharing.');
   });
   setDemo();
+  if (location.hash === '#acceptance-demo') showCheckDemo();
 })();

@@ -2,7 +2,7 @@
 
 Find the request that slowed down a release. Open two HTTP Archive (HAR) files to compare network waterfalls, inspect the slowest change, and export the evidence to a pull request. The browser app runs offline. The CLI runs the same comparison in CI.
 
-[Open the live demo](https://kremefkaped.github.io/harfold/) · [简体中文](README.zh-CN.md) · [Example captures](examples/) · [MIT license](LICENSE)
+[Open the live demo](https://kremefkaped.github.io/harfold/) · [Try an acceptance check](https://kremefkaped.github.io/harfold/#acceptance-demo) · [简体中文](README.zh-CN.md) · [MIT license](LICENSE)
 
 ![Harfold showing a storefront capture and its network waterfall](docs/waterfall.png)
 
@@ -14,6 +14,22 @@ Open the live demo above. For offline use, download the repository ZIP, extract 
 2. Open **/images/hero.webp**. Its request took **410 ms → 1.43 s**. The server wait stayed at 37 ms while receiving the image took an extra **1.02 s**.
 3. Search for **503**. The new recommendations endpoint also failed in capture B.
 4. Select **Export report** to save the Markdown comparison. It includes the full-capture metrics and up to 25 request pairs, independent of the screen filters.
+
+## Turn a regression into a check for the next release
+
+In **Compare**, open **/images/hero.webp** and select **Create acceptance check**. The byte rule is checked against both recordings before export. It passes the 142,000-byte baseline and fails the 1,284,000-byte regression. Save the JSON rule, then open **Acceptance check** to test another recording. **View task prompt** generates a repair brief locally and updates it after each candidate check.
+
+Try it from the command line with the bundled files:
+
+```sh
+node cli.js examples/storefront-before.har examples/storefront-after.har --derive bytes --endpoint https://storefront.example/images/hero.webp > contract.json
+node cli.js --check-contract contract.json examples/storefront-after.har
+node cli.js --prompt contract.json examples/storefront-after.har
+```
+
+Replace the last HAR with a fresh capture after making a change. Use `--derive status` for a matched endpoint that changed from HTTP 2xx to 4xx or 5xx. Each check applies to exactly one occurrence of the method, origin and path. Query strings are ignored. Missing or repeated requests, skipped records or incomparable measurements yield **inconclusive**. Byte checks require a full HTTP 200 response, a positive size and the same measurement source. A different origin, dynamic URL or a strict ceiling equal to one baseline sample can limit reuse.
+
+A broken image can be smaller than the budget and return HTTP 200. Pair the network check with an independent test of the actual image or application behavior. Run the seven-recording experiment to see this happen. [Experiment and reproduction steps](experiments/acceptance/)
 
 ## Inspect your own release
 
@@ -39,8 +55,9 @@ node cli.js examples/storefront-before.har examples/storefront-after.har --max-s
 | Exit code | Meaning |
 | --- | --- |
 | 0 | Comparison succeeded and any supplied budget passed |
-| 1 | Capture span increased by more than the budget |
+| 1 | Capture span exceeded its budget or the candidate failed its endpoint check |
 | 2 | Invalid arguments, unreadable file or invalid capture |
+| 3 | The candidate did not provide comparable evidence for its endpoint check |
 
 To add the report to a GitHub Actions job summary, run the following step after checking out Harfold, setting up Node, and recording the two files in the working directory.
 

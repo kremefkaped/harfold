@@ -3,6 +3,7 @@
 !examples/storefront-before.har
 !examples/storefront-after.har
 dist/
+__pycache__/
 node_modules/
 .DS_Store
 Thumbs.db
