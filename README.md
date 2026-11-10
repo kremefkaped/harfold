@@ -109,3 +109,5 @@ To host the app on GitHub Pages, publish the repository, then choose **Settings 
 For bug reports, include the browser or Node version, the expected result, and a minimal synthetic HAR that reproduces the issue. The two files in `examples/` are safe starting points.
 
 To try the same repair with a teammate, the organizer kit includes two independent workspaces and a separate verifier. [Handoff experiment and kit](experiments/acceptance/handoff-study.md)
+
+For a single-file TypeScript compiler regression, a separate research pilot reduces the file on your device and checks the original error against a working release. [Try your own case or report an obstacle](experiments/compiler-pilot.md)

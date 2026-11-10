@@ -75,4 +75,6 @@ node scripts/standalone.js
 
 想让两位开发者独立接手同一个故障，可以下载组织者试用包。里面有两份独立工作区、验收程序及中文说明。[交接实验和试用包](experiments/acceptance/handoff-study.md)
 
+另有一项公开试用面向 TypeScript 编译回归。开发者可以在本机试自己的文件，只反馈结果或卡住的步骤。[参加编译复现试用](experiments/compiler-pilot.md#中文入口)
+
 发布时，将项目目录内的全部源文件（含 `.github`）推送到 GitHub 仓库根目录。在 **Settings → Pages** 中选择 **Deploy from a branch → main → /(root)** 并保存，即可发布在线演示。 [GitHub Pages 发布说明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)

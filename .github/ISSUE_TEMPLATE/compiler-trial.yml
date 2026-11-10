@@ -1,0 +1,41 @@
+name: TypeScript reducer field result
+description: Share whether the experimental reducer helped with your own esbuild issue.
+title: "TypeScript reducer trial – "
+body:
+  - type: markdown
+    attributes:
+      value: "This form creates a public issue. Versions, line counts and a description are enough. Keep source files, full receipts and private paths on your device. [Trial instructions](https://github.com/kremefkaped/harfold/blob/main/experiments/compiler-pilot.md)"
+  - type: dropdown
+    id: context
+    attributes:
+      label: What did you try?
+      options:
+        - A problem from my own work
+        - I checked my own problem and it falls outside the tool's scope
+        - Only the bundled historical example
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: What was the outcome?
+      options:
+        - The same error survived and the working version compiled
+        - I got a smaller file but it no longer proves my issue
+        - The tool could not establish a comparable result
+        - My problem occurs after compilation or requires multiple files
+        - I could not start or finish the trial
+    validations:
+      required: true
+  - type: textarea
+    id: observation
+    attributes:
+      label: Which evidence or obstacle mattered?
+      description: "One sentence is enough. If available, include the good and bad esbuild versions, and the input and result line counts."
+    validations:
+      required: true
+  - type: input
+    id: timing
+    attributes:
+      label: Hands-on minutes to prepare the reproducer, if measured
+      description: "Include time spent selecting the original input and checking the result. If you timed a previous manual attempt, report it separately."
