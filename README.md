@@ -107,3 +107,5 @@ The last command builds **dist/harfold.html**, a portable single file you can at
 To host the app on GitHub Pages, publish the repository, then choose **Settings → Pages → Deploy from a branch → main → /(root)**. The repository root contains the complete static site. [GitHub Pages publishing guide](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 
 For bug reports, include the browser or Node version, the expected result, and a minimal synthetic HAR that reproduces the issue. The two files in `examples/` are safe starting points.
+
+To try the same repair with a teammate, the organizer kit includes two independent workspaces and a separate verifier. [Handoff experiment and kit](experiments/acceptance/handoff-study.md)

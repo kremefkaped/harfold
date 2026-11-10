@@ -2,6 +2,20 @@ name: Report a field test
 description: Describe how a network acceptance check performed on a real incident.
 title: "Field test – "
 body:
+  - type: markdown
+    attributes:
+      value: "A short description is enough. Keep captures and private addresses on your device. For a controlled two-person exercise, see the [handoff study and organizer kit](https://github.com/kremefkaped/harfold/blob/main/experiments/acceptance/handoff-study.md)."
+  - type: dropdown
+    id: source
+    attributes:
+      label: What did you try?
+      options:
+        - My own incident
+        - I could not apply Harfold to my incident
+        - The two-person repair exercise
+        - The built-in demo only
+    validations:
+      required: true
   - type: textarea
     id: behavior
     attributes:

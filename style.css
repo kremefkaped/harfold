@@ -260,8 +260,12 @@ tbody tr:hover { background: #f8f8f0; }
 .metric-value.delta-up { color: #ffae7b; }
 .metric-value.delta-down { color: #b4d4a6; }
 .empty-cell { padding: 30px 16px; color: var(--muted); text-align: center; font-size: 14px; }
-.workspace-foot { display: flex; align-items: center; justify-content: flex-end; gap: 7px; padding: 14px 0 26px; color: var(--muted); font: 11px var(--mono); }
+.workspace-foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 7px; padding: 14px 0 26px; color: var(--muted); font: 11px var(--mono); }
+.workspace-foot span, .project-links { display: flex; align-items: center; gap: 7px; }
 .workspace-foot .icon { width: 14px; height: 14px; }
+.project-links { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); gap: 16px; flex-wrap: wrap; font-size: 12px; }
+.project-links a, .workspace-foot a { color: var(--muted); text-underline-offset: 3px; }
+.project-links a:hover, .workspace-foot a:hover { color: var(--ink); }
 dialog { width: min(510px, calc(100% - 28px)); max-height: calc(100vh - 48px); padding: 21px 25px 26px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); box-shadow: 0 20px 75px #25271e40; }
 dialog::backdrop { background: #25271f69; }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
