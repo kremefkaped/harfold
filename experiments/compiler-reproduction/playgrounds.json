@@ -1,0 +1,35 @@
+{
+  "source": "samples/interval-result.ts",
+  "source_sha256": "e6395ac96b0b403870849b480b1d2d0e8d3bf336635d431e61643a66e3bc25e3",
+  "source_bytes": 286,
+  "options": "--loader=ts --sourcefile=CachingDictionary.ts --format=esm --color=false --log-limit=0",
+  "tested_on": "2026-11-10",
+  "browser": "Chrome 156.0.8078.80",
+  "mode": "transform",
+  "versions": [
+    {
+      "version": "0.25.6",
+      "url": "https://esbuild.github.io/try/#dAAwLjI1LjYALS1sb2FkZXI9dHMgLS1zb3VyY2VmaWxlPUNhY2hpbmdEaWN0aW9uYXJ5LnRzIC0tZm9ybWF0PWVzbSAtLWNvbG9yPWZhbHNlIC0tbG9nLWxpbWl0PTAAY2xhc3MgQ2FjaGVkRGljdCBpbXBsZW1lbnRzIENhY2hpbmdEaWN0aW9uYXJ5IHsKICAgICNoYXMgPSBhdXRvQ2FjaGUoKHdvcmQ6IHN0cmluZykgPT4gdGhpcy5kaWN0Lmhhcyh3b3JkLCB0aGlzLm9wdGlvbnMpLCBEZWZhdWx0QXV0b0NhY2hlU2l6ZSk7CiAgICBoYXMgPSBsb2dSZXF1ZXN0cwogICAgICAgID8gKHdvcmQ6IHN0cmluZyk6IGJvb2xlYW4gPT4gewogICAgICAgICAgICAgIGNvbnN0IHZhbHVlID0gdGhpcy4jaGFzKHdvcmQpOwogICAgICAgICAgfQogICAgICAgIDogdGhpcy4jaGFzOwp9Cg",
+      "outcome": "emitted_javascript",
+      "diagnostic": "",
+      "output_bytes": 193,
+      "output_executed": false
+    },
+    {
+      "version": "0.25.7",
+      "url": "https://esbuild.github.io/try/#dAAwLjI1LjcALS1sb2FkZXI9dHMgLS1zb3VyY2VmaWxlPUNhY2hpbmdEaWN0aW9uYXJ5LnRzIC0tZm9ybWF0PWVzbSAtLWNvbG9yPWZhbHNlIC0tbG9nLWxpbWl0PTAAY2xhc3MgQ2FjaGVkRGljdCBpbXBsZW1lbnRzIENhY2hpbmdEaWN0aW9uYXJ5IHsKICAgICNoYXMgPSBhdXRvQ2FjaGUoKHdvcmQ6IHN0cmluZykgPT4gdGhpcy5kaWN0Lmhhcyh3b3JkLCB0aGlzLm9wdGlvbnMpLCBEZWZhdWx0QXV0b0NhY2hlU2l6ZSk7CiAgICBoYXMgPSBsb2dSZXF1ZXN0cwogICAgICAgID8gKHdvcmQ6IHN0cmluZyk6IGJvb2xlYW4gPT4gewogICAgICAgICAgICAgIGNvbnN0IHZhbHVlID0gdGhpcy4jaGFzKHdvcmQpOwogICAgICAgICAgfQogICAgICAgIDogdGhpcy4jaGFzOwp9Cg",
+      "outcome": "diagnostic",
+      "diagnostic": "✘ [ERROR] Unexpected \":\"\n\n    CachingDictionary.ts:4:15:\n      4 │         ? (word: string): boolean => {\n        ╵                ^\n\n",
+      "output_bytes": 0,
+      "output_executed": false
+    },
+    {
+      "version": "0.25.8",
+      "url": "https://esbuild.github.io/try/#dAAwLjI1LjgALS1sb2FkZXI9dHMgLS1zb3VyY2VmaWxlPUNhY2hpbmdEaWN0aW9uYXJ5LnRzIC0tZm9ybWF0PWVzbSAtLWNvbG9yPWZhbHNlIC0tbG9nLWxpbWl0PTAAY2xhc3MgQ2FjaGVkRGljdCBpbXBsZW1lbnRzIENhY2hpbmdEaWN0aW9uYXJ5IHsKICAgICNoYXMgPSBhdXRvQ2FjaGUoKHdvcmQ6IHN0cmluZykgPT4gdGhpcy5kaWN0Lmhhcyh3b3JkLCB0aGlzLm9wdGlvbnMpLCBEZWZhdWx0QXV0b0NhY2hlU2l6ZSk7CiAgICBoYXMgPSBsb2dSZXF1ZXN0cwogICAgICAgID8gKHdvcmQ6IHN0cmluZyk6IGJvb2xlYW4gPT4gewogICAgICAgICAgICAgIGNvbnN0IHZhbHVlID0gdGhpcy4jaGFzKHdvcmQpOwogICAgICAgICAgfQogICAgICAgIDogdGhpcy4jaGFzOwp9Cg",
+      "outcome": "emitted_javascript",
+      "diagnostic": "",
+      "output_bytes": 193,
+      "output_executed": false
+    }
+  ]
+}
