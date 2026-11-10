@@ -99,3 +99,48 @@ test('derives a status contract, quotes an untrusted method, and rejects an ambi
     assert.doesNotMatch(invalid.stderr, /private-query|secret/);
   }
 });
+
+test('JSON checks and an independent observation guide the next task without exporting bodies', t => {
+  const save = filesFor(t);
+  function capture(name, text) {
+    const entry = structuredClone(demo.before.log.entries[0]);
+    entry.request.url = endpoint;
+    entry.response.content = { mimeType: 'application/json' };
+    if (text !== undefined) {
+      entry.response.content.text = text;
+      entry.response.content.size = Buffer.byteLength(text);
+    }
+    return save(name, JSON.stringify({ log: { entries: [entry] } }));
+  }
+  const good = capture('good.har', '{"private-example-key":2}');
+  const bad = capture('bad.har', '{"private-example-key":');
+  const missing = capture('omitted.har');
+  const derived = run(good, bad, '--derive', 'json', '--endpoint', endpoint);
+  assert.equal(derived.status, 0, derived.stderr);
+  assert.deepEqual(JSON.parse(derived.stdout).evidence, { before: 'valid', after: 'invalid' });
+  assert.doesNotMatch(derived.stdout, /private-example-key/);
+  const rule = save('check.json', derived.stdout);
+  for (const [recording, behavior, expected, action] of [
+    [good, 'broken', 'pass', /missed this failure/],
+    [bad, 'working', 'fail', /false alarm for that tested behavior/],
+    [missing, 'broken', 'inconclusive', /Investigate that failure now/],
+    [missing, 'working', 'inconclusive', /cannot settle the network requirement/],
+  ]) {
+    const task = run('--prompt', rule, recording, '--behavior', behavior);
+    assert.equal(task.status, 0, task.stderr);
+    assert.match(task.stdout, action);
+    assert.doesNotMatch(task.stdout, /private-example-key/);
+    const evidence = JSON.parse(task.stdout.match(/```json\n(.*?)\n```/s)[1]);
+    assert.equal(evidence.state, expected);
+    assert.equal(evidence.reportedFunctionalOutcome, behavior);
+  }
+  for (const args of [
+    ['--prompt', rule, '--behavior', 'working'],
+    ['--prompt', rule, good, '--behavior', 'untrusted-input'],
+    ['--check-contract', rule, good, '--behavior', 'working'],
+  ]) {
+    const result = run(...args);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, '');
+  }
+});

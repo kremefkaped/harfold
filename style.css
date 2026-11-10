@@ -303,9 +303,13 @@ summary:focus-visible, textarea:focus-visible { outline: 3px solid #a9421a; outl
 .prompt-disclosure textarea { width: 100%; max-width: 100%; resize: vertical; padding: 10px; font: 12px/1.5 var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 5px; }
 .candidate-section { margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--line); }
 .candidate-section h3 { margin: 0; }
-#demo-replay { margin-top: 12px; }
-#demo-replay .check-actions { margin-top: 5px; }
-#demo-replay .button { min-height: 31px; padding-inline: 10px; }
+:is(#demo-replay, #case-replay) { margin-top: 12px; }
+:is(#demo-replay, #case-replay) .check-actions { margin-top: 5px; }
+:is(#demo-replay, #case-replay) .button { min-height: 31px; padding-inline: 10px; }
+#behavior-field { margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); }
+#behavior-field label { display: block; margin-bottom: 5px; }
+:is(#candidate-behavior, #case-sample) { min-height: 32px; max-width: 100%; padding: 4px 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 4px; font-size: 13px; }
+#behavior-assessment:empty { display: none; }
 .check-result { margin-top: 12px; padding: 12px; border-left: 3px solid #9c8a61; background: #f3efe2; font-size: 13px; overflow-wrap: anywhere; }
 .check-result:empty { display: none; }
 .check-result[data-state="pass"] { background: #ecf3e8; border-color: #53805b; }

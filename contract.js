@@ -4,6 +4,7 @@
 
   const fields = ["version", "kind", "method", "origin", "path", "evidence"];
   const sources = new Set(["transfer", "headers+body", "body"]);
+  const kinds = new Set(["status", "bytes", "json"]);
   const positiveBytes = n => Number.isSafeInteger(n) && n > 0;
   const successStatus = n => Number.isInteger(n) && n >= 200 && n <= 299;
 
@@ -25,7 +26,7 @@
     const kind = contract && Object.getOwnPropertyDescriptor(contract, "kind")?.value;
     requireFields(contract, kind === "bytes" ? [...fields, "maxBytes", "byteSource"] : fields, "Contract");
     if (contract.version !== 1) throw new Error("Use a version 1 Harfold contract.");
-    if (kind !== "status" && kind !== "bytes") throw new Error("Choose a status or bytes contract.");
+    if (!kinds.has(kind)) throw new Error("Choose a status, bytes or JSON contract.");
     const { method, origin, path, evidence } = contract;
     if (typeof method !== "string" || !/^[!#$%&'*+.^_`|~A-Za-z0-9-]{1,64}$/.test(method)) {
       throw new Error("Use a valid HTTP method.");
@@ -44,6 +45,10 @@
       if (!positiveBytes(evidence.before) || !positiveBytes(evidence.after) ||
           evidence.after <= evidence.before || contract.maxBytes !== evidence.before) {
         throw new Error("Set maxBytes to the positive baseline byte count and supply a larger comparison count.");
+      }
+    } else if (kind === "json") {
+      if (evidence.before !== "valid" || evidence.after !== "invalid") {
+        throw new Error("A JSON contract requires valid baseline JSON and invalid comparison JSON.");
       }
     } else if (!successStatus(evidence.before) || !Number.isInteger(evidence.after) ||
                evidence.after < 400 || evidence.after > 599) {
@@ -70,6 +75,14 @@
       match = request;
     }
     if (!match) return inconclusive("Endpoint is missing. Record the action that sends this request.");
+    if (contract.kind === "json") {
+      if (match.status !== 200 || !["valid", "invalid"].includes(match.jsonState)) {
+        return inconclusive("Expected an HTTP 200 response with an embedded, complete JSON body up to 1 MiB.");
+      }
+      return match.jsonState === "valid"
+        ? { state: "pass", reason: "The recorded body parses as JSON.", actual: "valid" }
+        : { state: "fail", reason: "The recorded body does not parse as JSON.", actual: "invalid" };
+    }
     if (contract.kind === "status") {
       const actual = match.status;
       if (!Number.isInteger(actual) || actual < 100 || actual > 599) {
@@ -91,15 +104,16 @@
   }
 
   function derive(before, after, row, kind) {
-    if (kind !== "bytes" && kind !== "status") throw new Error("Choose a status or bytes contract.");
+    if (!kinds.has(kind)) throw new Error("Choose a status, bytes or JSON contract.");
     if (row?.state !== "matched" || !row.before || !row.after || !sameEndpoint(row.before, row.after)) {
       throw new Error("Select a request with the same method, origin and path in both captures.");
     }
     const a = row.before;
     const b = row.after;
+    const measurement = kind === "json" ? "jsonState" : kind;
     const contract = {
       version: 1, kind, method: a.method, origin: a.origin, path: a.path,
-      evidence: { before: a[kind], after: b[kind] },
+      evidence: { before: a[measurement], after: b[measurement] },
     };
     if (kind === "bytes") {
       if (a.byteSource !== b.byteSource) throw new Error("Both captures must report the same byte source.");

@@ -19,6 +19,7 @@
   let currentCheck = null;
   let checkVersion = 0;
   let candidateVersion = 0;
+  let candidateVerdict = null;
 
   function node(tag, className, text) {
     const el = document.createElement(tag);
@@ -274,7 +275,8 @@
     const group = node('section', 'check-creator');
     const options = new Map();
     const unavailable = [];
-    for (const kind of ['bytes', 'status']) {
+    const ruleNames = { bytes: 'Response byte budget', status: 'Successful HTTP status', json: 'Recorded JSON syntax' };
+    for (const kind of Object.keys(ruleNames)) {
       try {
         options.set(kind, window.HarfoldContract.derive(captures.a.data, captures.b.data, change, kind));
       } catch (error) {
@@ -291,7 +293,7 @@
     const select = node('select');
     select.setAttribute('aria-label', 'Acceptance rule');
     for (const kind of options.keys()) {
-      select.add(new Option(kind === 'bytes' ? 'Response byte budget' : 'Successful HTTP status', kind));
+      select.add(new Option(ruleNames[kind], kind));
     }
     const button = node('button', 'button button-primary', 'Create acceptance check');
     button.type = 'button';
@@ -305,7 +307,15 @@
   }
 
   function measuredValue(kind, value) {
+    if (kind === 'json') return value === 'valid' ? 'Valid JSON' : 'Invalid JSON';
     return kind === 'bytes' ? value.toLocaleString('en-US') + ' B' : 'HTTP ' + value;
+  }
+
+  function resetBehavior() {
+    candidateVerdict = null;
+    $('behavior-field').hidden = true;
+    $('candidate-behavior').value = '';
+    $('behavior-assessment').textContent = '';
   }
 
   function showCheckDemo() {
@@ -316,13 +326,46 @@
     if (!$('check-dialog').open) $('check-dialog').showModal();
   }
 
+  function showJsonDemo() {
+    const good = parseHar(window.HarfoldGzipDemo.good);
+    const bad = parseHar(window.HarfoldGzipDemo.bad);
+    const row = compareHars(good, bad).rows.find(r => r.before?.jsonState === 'valid' && r.after?.jsonState === 'invalid');
+    const rule = window.HarfoldContract.derive(good, bad, row, 'json');
+    setCheck(rule, 'Starlette #1901 · Gzip case experiment');
+    $('case-replay').hidden = false;
+    $('case-sample').value = 'bad';
+    runCaseSample();
+    if (!$('check-dialog').open) $('check-dialog').showModal();
+  }
+
+  function runCaseSample() {
+    if ($('case-replay').hidden || !currentCheck) return;
+    candidateVersion++;
+    const option = $('case-sample').selectedOptions[0];
+    const source = option.value === 'wrong' ? 'Additional value experiment' : 'Gzip case experiment';
+    const name = option.text;
+    const observation = {
+      good: 'The independent client decoded the expected product Mug, quantity 2.',
+      bad: 'After one gzip decode, the independent client could not parse the product response.',
+      larger: 'The independent client decoded Mug, quantity 2, despite the larger transfer.',
+      wrong: 'The independent client expected Mug, quantity 2, and received Cup, quantity 2.',
+    }[option.value];
+    const replayNote = source + ' replay of ' + name + '. ' + observation;
+    showVerdict(parseHar(window.HarfoldGzipDemo[option.value]), source + ' · ' + name, {
+      replayNote, observedBehavior: option.dataset.behavior, observation,
+    });
+  }
+
   function setCheck(contract, source, sample = false) {
     checkVersion++;
     candidateVersion++;
     currentCheck = contract;
+    resetBehavior();
     $('check-active').hidden = !contract;
     $('check-intro').hidden = Boolean(contract);
     $('try-check-demo').hidden = Boolean(contract);
+    $('try-json-demo').hidden = Boolean(contract);
+    $('case-replay').hidden = true;
     $('demo-replay').hidden = !sample;
     $('check-notice').textContent = '';
     $('check-result').replaceChildren();
@@ -332,9 +375,10 @@
     if (!contract) return;
     $('check-source').textContent = source;
     $('check-target').textContent = contract.method + ' ' + contract.origin + contract.path;
-    $('check-rule').textContent = contract.kind === 'bytes'
-      ? 'Require HTTP 200 and a positive byte count at or below ' + measuredValue('bytes', contract.maxBytes) + ' using the ' + contract.byteSource + ' measurement.'
-      : 'Require an HTTP status from 200 to 299.';
+    let rule = 'Require an HTTP status from 200 to 299.';
+    if (contract.kind === 'bytes') rule = 'Require HTTP 200 and a positive byte count at or below ' + measuredValue('bytes', contract.maxBytes) + ' using the ' + contract.byteSource + ' measurement.';
+    if (contract.kind === 'json') rule = 'Check the recorded HTTP 200 response for valid JSON syntax. A missing response body is inconclusive. Verify the expected content in a separate functional test.';
+    $('check-rule').textContent = rule;
     $('check-before').textContent = measuredValue(contract.kind, contract.evidence.before);
     $('check-after').textContent = measuredValue(contract.kind, contract.evidence.after);
     $('check-prompt').value = window.HarfoldContractPrompt.prompt(contract);
@@ -357,6 +401,7 @@
 
   async function verifyCandidate(file) {
     if (!file || !currentCheck) return;
+    resetBehavior();
     const version = ++candidateVersion;
     const result = $('check-result');
     $('check-prompt').value = window.HarfoldContractPrompt.prompt(currentCheck);
@@ -376,20 +421,34 @@
     }
   }
 
-  function showVerdict(capture, name, replay = '') {
+  function showVerdict(capture, name, { replayNote = '', observedBehavior, observation } = {}) {
+    resetBehavior();
     const verdict = window.HarfoldContract.check(currentCheck, capture);
-    const sampleNote = replay ? '> Demo replay of the known ' + replay + ' capture. Verify a repair with a fresh, independent recording.\n\n' : '';
-    $('check-prompt').value = sampleNote + window.HarfoldContractPrompt.prompt(currentCheck, verdict);
+    const sampleNote = replayNote ? '> ' + replayNote + '\n\n' : '';
+    $('check-prompt').value = sampleNote + window.HarfoldContractPrompt.prompt(currentCheck, verdict, observedBehavior);
     $('check-notice').textContent = '';
     const result = $('check-result');
     result.dataset.state = verdict.state;
     const label = { pass: 'Pass', fail: 'Fail', inconclusive: 'Inconclusive' }[verdict.state];
     result.replaceChildren(node('strong', 'verdict-label', label),
-      node('span', 'verdict-file', replay ? 'Known ' + replay + ' · ' + name : name), node('p', '', verdict.reason));
+      node('span', 'verdict-file', name), node('p', '', verdict.reason));
     if (verdict.actual !== null) {
       result.append(node('div', 'verdict-measure', 'Observed · ' + measuredValue(currentCheck.kind, verdict.actual)));
     }
-    if (verdict.state === 'pass') result.append(node('p', '', 'Network check passed. Test the user-visible behavior separately.'));
+    if (observedBehavior) {
+      result.append(node('div', 'verdict-measure', 'Independent functional test · ' + observedBehavior),
+        node('p', '', observation),
+        node('p', '', window.HarfoldContractPrompt.guidance(verdict.state, observedBehavior)));
+    } else if (verdict.state === 'pass') {
+      const note = currentCheck.kind === 'json'
+        ? 'The recorded body parses as JSON. Verify its values and the user-visible behavior separately.'
+        : 'Network check passed. Test the user-visible behavior separately.';
+      result.append(node('p', '', note));
+    }
+    if (!replayNote) {
+      candidateVerdict = verdict;
+      $('behavior-field').hidden = false;
+    }
   }
 
   function detail(req, change) {
@@ -450,11 +509,21 @@
   $('reset-demo').addEventListener('click', () => { setDemo(); announce('Restored the two sample captures.'); });
   $('open-check').addEventListener('click', () => $('check-dialog').showModal());
   $('try-check-demo').addEventListener('click', showCheckDemo);
+  $('try-json-demo').addEventListener('click', showJsonDemo);
+  $('run-case-sample').addEventListener('click', runCaseSample);
+  $('candidate-behavior').addEventListener('change', event => {
+    if (!candidateVerdict) return;
+    const behavior = event.target.value || undefined;
+    $('behavior-assessment').textContent = behavior ? window.HarfoldContractPrompt.guidance(candidateVerdict.state, behavior) : '';
+    $('check-prompt').value = window.HarfoldContractPrompt.prompt(currentCheck, candidateVerdict, behavior);
+    $('check-notice').textContent = '';
+  });
   for (const [key, name] of [['a', 'baseline'], ['b', 'regression']]) {
     $('replay-' + key).addEventListener('click', () => {
       if (!currentCheck || $('demo-replay').hidden) return;
       candidateVersion++;
-      showVerdict(demoCaptures[key].data, demoCaptures[key].name, name);
+      const replayNote = 'Demo replay of the known ' + name + ' capture. Verify a repair with a fresh, independent recording.';
+      showVerdict(demoCaptures[key].data, 'Known ' + name + ' · ' + demoCaptures[key].name, { replayNote });
     });
   }
   for (const [id, handler] of [['check-file', openSavedCheck], ['candidate-file', verifyCandidate]]) {
@@ -492,4 +561,5 @@
   });
   setDemo();
   if (location.hash === '#acceptance-demo') showCheckDemo();
+  if (location.hash === '#json-demo') showJsonDemo();
 })();

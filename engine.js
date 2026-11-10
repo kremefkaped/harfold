@@ -3,6 +3,7 @@
   "use strict";
 
   const MAX_ENTRIES = 50000;
+  const MAX_JSON_BYTES = 1024 * 1024;
   const RESOURCE_TYPES = new Set([
     "document", "script", "stylesheet", "image", "font", "media", "fetch", "xhr",
   ]);
@@ -30,12 +31,57 @@
     return { bytes: body, byteSource: "body" };
   }
 
-  function resourceType(entry) {
+  function mimeType(response) {
+    const value = response?.content?.mimeType;
+    return typeof value === "string" ? value.split(";", 1)[0].trim().toLowerCase() : "";
+  }
+
+  function truncated(record) {
+    return record?._truncated || record?.truncated || record?._bodyTruncated || record?._contentTruncated;
+  }
+
+  function jsonState(response, mime) {
+    if (response?.status !== 200 ||
+        !/^(?:application\/json|[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*\+json)$/.test(mime)) return null;
+    const content = response.content;
+    let text = content.text;
+    const declaredSize = byteValue(content.size) ? content.size : null;
+    if (typeof text !== "string" || content._file || content._sha1 || truncated(response) ||
+        truncated(content) || declaredSize > MAX_JSON_BYTES) return null;
+
+    let length;
+    let binary;
+    if (content.encoding === "base64") {
+      const compact = text.replace(/[\t\n\f\r ]/g, "");
+      if (compact.length > 4 * Math.ceil(MAX_JSON_BYTES / 3)) return null;
+      try { binary = atob(compact); } catch { return null; }
+      // Ignore line wrapping, but reject damaged or noncanonical encoded data.
+      if (btoa(binary) !== compact) return null;
+      length = binary.length;
+    } else {
+      if (content.encoding !== undefined || text.length > MAX_JSON_BYTES) return null;
+      length = new TextEncoder().encode(text).length;
+    }
+    if (length > MAX_JSON_BYTES || declaredSize > length || (!length && declaredSize !== 0)) return null;
+    try {
+      if (binary !== undefined) {
+        const bytes = new Uint8Array(length);
+        for (let i = 0; i < length; i++) bytes[i] = binary.charCodeAt(i);
+        // Fetch decodes malformed UTF-8 with replacement before parsing JSON.
+        // Defer BOM removal to the shared text path so at most one is skipped.
+        text = new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes);
+      }
+      JSON.parse(text.replace(/^\uFEFF/, ""));
+      return "valid";
+    } catch {
+      // Retain only the verdict. Parse errors can contain response text.
+      return "invalid";
+    }
+  }
+
+  function resourceType(entry, mime) {
     const kind = typeof entry._resourceType === "string" && entry._resourceType.toLowerCase();
     if (RESOURCE_TYPES.has(kind)) return kind;
-    const mimeType = entry.response?.content?.mimeType;
-    if (typeof mimeType !== "string") return "other";
-    const mime = mimeType.split(";", 1)[0].trim().toLowerCase();
     if (mime === "text/html" || mime === "application/xhtml+xml") return "document";
     if (mime === "text/css") return "stylesheet";
     if (/(java|ecma)script$/.test(mime)) return "script";
@@ -90,12 +136,14 @@
     const measured = timing(entry);
     if (!Number.isFinite(start) || !measured) return null;
     const status = entry.response?.status;
+    const mime = mimeType(entry.response);
     return {
       id: "r" + (index + 1), index, method, origin: url.origin, host: url.host,
       path: url.pathname, label: url.host + url.pathname,
       status: status === 0 || (Number.isInteger(status) && status >= 100 && status <= 599)
         ? status : null,
-      type: resourceType(entry), start, ...measured, ...responseBytes(entry.response),
+      type: resourceType(entry, mime), jsonState: jsonState(entry.response, mime),
+      start, ...measured, ...responseBytes(entry.response),
     };
   }
 

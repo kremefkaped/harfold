@@ -2,13 +2,15 @@
 
 网页发布后变慢了，具体慢在哪个请求？把两次操作的 HAR 网络记录放进 Harfold，可以逐条比较耗时、下载大小和状态码，再把结果导出为适合贴到 Pull Request 的 Markdown。浏览器版支持离线使用，命令行版可以接入 CI。
 
-[在线演示](https://kremefkaped.github.io/harfold/) · [直接试一次修复验收](https://kremefkaped.github.io/harfold/#acceptance-demo) · [English](README.md) · [示例文件](examples/) · [MIT 许可证](LICENSE)
+[体验一个真实故障](https://kremefkaped.github.io/harfold/#json-demo) · [下载离线单文件](https://github.com/kremefkaped/harfold/releases/latest/download/Harfold.html) · [English](README.md) · [示例文件](examples/) · [MIT 许可证](LICENSE)
+
+在线演示里的接口每次都返回 200。默认样本 **Double-encoded response** 显示，多压缩一次就让商品数据读不出来。再选 **Wrong product value**，点击 **Run case sample**。这次数据能读，但期望的商品名是 Mug，实际返回 Cup，功能测试仍然失败。点 **View task prompt** 可以看到这个反例怎样改变给 AI 的修复任务。[上游修复](https://github.com/Kludex/starlette/pull/1901) · [十一份记录的实验](experiments/acceptance/gzip-case.md)
 
 ![Harfold 中的商店页面请求瀑布图](docs/waterfall.png)
 
 ## 一分钟复现一次性能回归
 
-打开上方的在线演示，页面会自动载入一间虚构商店改版前后的两份记录。离线使用时，从 GitHub 下载项目 ZIP，解压后双击 **index.html** 即可。
+打开商店示例，或双击下载的 **Harfold.html**，页面会自动载入一间虚构商店改版前后的两份记录。[商店示例入口](https://kremefkaped.github.io/harfold/)
 
 1. 点击 **Compare**。从首个请求发出到最后一个请求完成，整段记录多用了 **794 毫秒**。
 2. 点击 **/images/hero.webp**。它的体积从 **142,000 字节增加到 1,284,000 字节**，耗时从 **410 毫秒增加到 1.43 秒**。等待响应仍是 37 毫秒，多出的 1.02 秒都花在接收数据上。
@@ -26,6 +28,8 @@ node cli.js --prompt contract.json examples/storefront-after.har
 ```
 
 把后两条命令里的 HAR 换成修复后的记录即可。也可以用 `--derive status` 检查同一接口是否从 4xx 或 5xx 恢复为 2xx。每份记录中必须恰有一个方法、来源和路径相同的请求；查询参数不参与配对。请求缺失、重复、记录有跳过条目或计量口径变化，结果均为「证据不足」，退出码为 **3**。字节检查限于 HTTP 200、正字节记录，默认上限取自单次基线。
+
+`--derive json` 检查 HTTP 200 记录中最多 1 MiB 的 JSON 正文能否解析。导出的规则只保留请求身份和「有效／无效」标记。缺正文、外置正文或可识别的截断记录会返回「证据不足」。如果另一次独立功能测试已确认候选版本有故障，可以运行 `node cli.js --prompt contract.json candidate.har --behavior broken`。当网络规则通过、功能测试失败时，提示词会要求保留这个漏报样本并检查真实功能。
 
 图片损坏后也可能变小、返回 HTTP 200。还要单独验证它能解码并显示预期内容。我们用七次由浏览器实际发起的本地访问复现了这个反例。[实验和复现步骤](experiments/acceptance/) · [中文研发记录](experiments/acceptance/research.zh-CN.md)
 

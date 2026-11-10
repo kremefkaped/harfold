@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="engine.js" defer></script>
   <script src="demo.js" defer></script>
+  <script src="gzip-demo.js" defer></script>
   <script src="report.js" defer></script>
   <script src="contract.js" defer></script>
   <script src="contract-prompt.js" defer></script>
@@ -138,6 +139,7 @@
     <div class="check-actions">
       <label class="button button-quiet file-button"><input class="file-native" type="file" id="check-file" accept=".json,application/json">Open saved JSON</label>
       <button type="button" class="button button-primary" id="try-check-demo">Try the demo</button>
+      <button type="button" class="button button-quiet" id="try-json-demo">Try JSON case</button>
     </div>
     <div id="check-notice" class="notice" role="status" aria-live="polite"></div>
     <section id="check-active" aria-label="Current acceptance check" hidden>
@@ -157,7 +159,28 @@
           <span class="field-caption">Replay known samples</span>
           <div class="check-actions"><button type="button" class="button button-quiet" id="replay-a">Try baseline</button><button type="button" class="button button-quiet" id="replay-b">Try regression</button></div>
         </div>
+        <div id="case-replay" hidden>
+          <label for="case-sample" class="field-caption">Replay a case observation</label>
+          <div class="check-actions">
+            <select id="case-sample">
+              <option value="good" data-behavior="working">Working response</option>
+              <option value="bad" data-behavior="broken">Double-encoded response</option>
+              <option value="larger" data-behavior="working">Larger working response</option>
+              <option value="wrong" data-behavior="broken">Wrong product value</option>
+            </select>
+            <button type="button" class="button button-quiet" id="run-case-sample">Run case sample</button>
+          </div>
+        </div>
         <div id="check-result" class="check-result" role="status" aria-live="polite"></div>
+        <div id="behavior-field" hidden>
+          <label for="candidate-behavior" class="field-caption">Independent functional test</label>
+          <select id="candidate-behavior">
+            <option value="">Not labeled</option>
+            <option value="working">Confirmed working</option>
+            <option value="broken">Confirmed broken</option>
+          </select>
+          <p id="behavior-assessment" role="status" aria-live="polite"></p>
+        </div>
       </section>
     </section>
   </dialog>

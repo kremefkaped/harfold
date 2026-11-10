@@ -28,6 +28,17 @@ FastAPI 用户曾报告升级后，包含冒号的上传路由开始返回 404�
 
 ## 用什么判断是否值得继续做大
 
+### 第二轮对照
+
+| 原始故障 | 从记录得到的结果 | 手写检查的结果 |
+| --- | --- | --- |
+| Starlette 的代理响应被压缩两次 | 11 份记录均为 200。字节预算检出了 3 份故障，也误报了 3 份内容正确、压缩头更长的响应。新增的 JSON 检查检出了 3 份故障，放行了 3 份较大对照。合法 JSON 里的错商品也通过；正文省略时结论为证据不足。 | 客户端按头解压一次，然后比较商品和数量，识别出双重压缩与商品错误。开发者已掌握预期值时，这条原生断言覆盖更广。[修复](https://github.com/Kludex/starlette/pull/1901) · [实验及命令](gzip-case.md) |
+| Fastify 的异步处理器没有结束空响应 | 单次本地重放中，4.21.0 和 4.22.1 返回空正文的 200，4.22.0 到两秒截止仍未返回。故障录制缺少已完成响应，Harfold 无法生成状态规则。 | 发出相同 POST，要求两秒内返回 200 空正文，三版结果为通过、失败、通过。这个案例应保留主动请求的时限测试。[上游测试](https://github.com/fastify/fastify/pull/5008/files) |
+
+公开项目的已有做法也影响了选择。Formbricks 创建联系人时直接断言状态、生成的 ID、工作区和邮箱；VilnaCRM 的维护者则记录了性能检查曾跑在加载失败页上的问题。前者已有可执行的业务判据，再录三份 HAR 会增加步骤。后者说明性能分数和功能状态可以分离。这是对其仓库代码的观察，两家团队均未参与本项目试用。[Formbricks 测试](https://github.com/formbricks/formbricks/blob/2f76787a887de9f46db1254134ccc93a1acd57be/apps/web/playwright/api/management/contacts.spec.ts#L19-L36) · [VilnaCRM 基线说明](https://github.com/VilnaCRM-Org/website/blob/92a5ac5d721eb39eb05ea2952ffec0c37b1ee313/lighthouserc.desktop.js#L8-L25)
+
+第四轮修改了修复指令的输入。对同一份候选抓包，测试者可补充独立功能测试的成功或失败结果。若传输超限但商品正确，提示词保留这份误报样本，并检查体积本身是否有独立预算；若 JSON 合法但商品错误，则保留漏报样本，优先复现返回错误商品的功能断言。标签来自测试者，界面切换候选时清空。现阶段优先验证的用户是已经持有正常与故障录像、需要跨团队移交的工程师。
+
 我们已能在受控浏览器实验中区分请求缺失、请求重复、图片增大和状态码异常。下一项未知数是它能否减少真实团队的返工。先让至少 3 个独立团队用 12 个历史故障试用，把无法建规则的案例也计入。事先写下预期功能，给两种做法分别计时，交替尝试顺序。若编写可复用验收的中位耗时下降 30%，还要核对功能测试误判是否增加。若主要障碍是动态地址、缺少基线或无法取得抓包，产品方向应随这些结果调整。上述门槛是试验设计，尚无团队实测数据。[试用反馈入口](https://github.com/kremefkaped/harfold/issues/new?template=field-test.yml)
 
 GitHub Star 是外部采用信号。调研当日仓库为 0 Star，GitHub 公开仓库检索中达到一千万 Star 的结果数为 0。这个数量级目前缺少可用于预测的先例。阶段性采用证据优先看实际复用规则的独立仓库、回访维护者和可核验的省时记录。[Harfold 公开数据](https://api.github.com/repos/kremefkaped/harfold) · [GitHub 公开仓库检索](https://api.github.com/search/repositories?q=stars%3A%3E%3D10000000)

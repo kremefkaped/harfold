@@ -10,18 +10,19 @@ const { prompt } = require('./contract-prompt.js');
 
 const MAX_BYTES = 32 * 1024 * 1024;
 const usage = `Usage: node cli.js <before.har> <after.har> [--json] [--max-span-increase <ms>]
-       node cli.js <before.har> <after.har> --derive <bytes|status> --endpoint <url> [--method GET]
+       node cli.js <before.har> <after.har> --derive <bytes|status|json> --endpoint <url> [--method GET]
        node cli.js --check-contract <contract.json> <candidate.har>
-       node cli.js --prompt <contract.json> [candidate.har]
+       node cli.js --prompt <contract.json> [candidate.har [--behavior working|broken]]
 
 Compare two local captures. The default output is a Markdown report.
   --json                    Print summary metrics and all request pairs as JSON.
   --max-span-increase <ms>  Fail if the capture span grows by more than this many milliseconds.
-  --derive <bytes|status>   Print a rule that passes the baseline and fails the regression.
+  --derive <kind>           Derive a response byte, HTTP status, or recorded JSON syntax rule.
   --endpoint <url>          Select one absolute HTTP(S) URL, without credentials, query or fragment.
   --method <method>         Match this HTTP method exactly (default GET).
   --check-contract <file>   Check one new HAR and print its verdict as JSON.
   --prompt <file>           Print a repair task, updated with the candidate verdict if supplied.
+  --behavior <result>       Supply your independent test outcome for this candidate: working or broken.
   --help                    Show usage.
 
 Exit codes: 0 success, 1 failed rule or exceeded budget, 2 invalid input or arguments, 3 inconclusive rule.
@@ -111,7 +112,7 @@ function main() {
     options: {
       json: { type: 'boolean' }, 'max-span-increase': textOption,
       derive: textOption, endpoint: textOption, method: textOption,
-      'check-contract': textOption, prompt: textOption, help: { type: 'boolean' }
+      'check-contract': textOption, prompt: textOption, behavior: textOption, help: { type: 'boolean' }
     }
   });
   if (values.help) {
@@ -121,7 +122,7 @@ function main() {
   const mode = ['derive', 'check-contract', 'prompt'].find(name => name in values) || 'compare';
   const allowed = {
     compare: ['json', 'max-span-increase'], derive: ['derive', 'endpoint', 'method'],
-    'check-contract': ['check-contract'], prompt: ['prompt']
+    'check-contract': ['check-contract'], prompt: ['prompt', 'behavior']
   };
   if (Object.keys(values).some(name => !allowed[mode].includes(name))) {
     throw new Error('Incompatible options. See --help.');
@@ -130,7 +131,7 @@ function main() {
     if (positionals.length > 1) throw new Error('--prompt takes a contract and optionally one candidate HAR. See --help.');
     const contract = loadJson(values.prompt, 'contract');
     const verdict = positionals.length ? check(contract, loadCapture(positionals[0])) : undefined;
-    process.stdout.write(prompt(contract, verdict));
+    process.stdout.write(prompt(contract, verdict, values.behavior));
     return 0;
   }
   if (mode === 'check-contract') {
@@ -143,7 +144,7 @@ function main() {
   const [before, after] = positionals.map(loadCapture);
   const comparison = compareHars(before, after);
   if (mode === 'compare') return compare(before, after, comparison, values);
-  if (!['bytes', 'status'].includes(values.derive)) throw new Error('--derive requires bytes or status.');
+  if (!['bytes', 'status', 'json'].includes(values.derive)) throw new Error('--derive requires bytes, status or json.');
   const row = selectEndpoint(comparison.rows, values.endpoint, values.method ?? 'GET');
   writeJson(derive(before, after, row, values.derive));
   return 0;
